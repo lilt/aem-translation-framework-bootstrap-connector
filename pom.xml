@@ -545,6 +545,20 @@
                 <scope>provided</scope>
             </dependency>
 
+            <dependency>
+	            <artifactId>com.adobe.granite.translation.api</artifactId>
+	            <version>1.2.4</version>
+	            <groupId>com.adobe.granite</groupId>
+	            <scope>compile</scope>
+            </dependency>
+
+            <dependency>
+	            <artifactId>org.apache.sling.api</artifactId>
+	            <version>2.18.4</version>
+	            <groupId>org.apache.sling</groupId>
+	            <scope>compile</scope>
+            </dependency>
+
             <!-- Servlet API -->
             <dependency>
                 <groupId>javax.servlet</groupId>
