@@ -60,8 +60,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     private static final String I18NCOMPONENTSTRINGDICT = "/i18n-dictionary";
     private static final String SERVICE_LABEL = "bootstrap";
     private static final String SERVICE_ATTRIBUTION = "Translation By Bootstrap";
-    private String dummyConfigId = "";
-    private String dummyServerUrl = "";
+    private String liltConfigId = "";
+    private String liltServerUrl = "";
     private String previewPath = "";
     private Boolean isPreviewEnabled = false;
     private Boolean isPseudoLocalizationDisabled = false;
@@ -120,20 +120,20 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     // Constructor
     public BootstrapTranslationServiceImpl(Map<String, String> availableLanguageMap,
-        Map<String, String> availableCategoryMap, String name, Boolean isPreviewEnabled, Boolean isPseudoLocalizationDisabled, String exportFormat, String dummyConfigId, String dummyServerUrl, String previewPath,
+        Map<String, String> availableCategoryMap, String name, Boolean isPreviewEnabled, Boolean isPseudoLocalizationDisabled, String exportFormat, String liltConfigId, String liltServerUrl, String previewPath,
         TranslationConfig translationConfig, BootstrapTmsService bootstrapTmsService) {
         super(availableLanguageMap, availableCategoryMap, name, SERVICE_LABEL, SERVICE_ATTRIBUTION,
             BootstrapTranslationCloudConfigImpl.ROOT_PATH, TranslationMethod.MACHINE_TRANSLATION, translationConfig);
 
         log.trace("BootstrapTranslationServiceImpl.");
-        log.trace("dummyConfigId: {}",dummyConfigId);
-        log.trace("dummyServerUrl: {}",dummyServerUrl);
+        log.trace("liltConfigId: {}",liltConfigId);
+        log.trace("liltServerUrl: {}",liltServerUrl);
         log.trace("previewPath: {}",previewPath);
         log.trace("isPreviewEnabled: {}",isPreviewEnabled);
         log.trace("isPseudoLocalizationDisabled: {}", isPseudoLocalizationDisabled);
         log.trace("exportFormat: {}",exportFormat);
-        this.dummyConfigId = dummyConfigId;
-        this.dummyServerUrl = dummyServerUrl;
+        this.liltConfigId = liltConfigId;
+        this.liltServerUrl = liltServerUrl;
         this.previewPath = previewPath;
         this.bootstrapTmsService = bootstrapTmsService;
         this.isPseudoLocalizationDisabled = isPseudoLocalizationDisabled;
@@ -244,8 +244,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     @Override
     public TranslationStatus updateTranslationJobState(String strTranslationJobID, TranslationState state)
         throws TranslationException {
-    	if(strTranslationJobID=="dummy"){
-    		log.debug("Dummy Translation job detected");
+    	if(strTranslationJobID=="lilt"){
+    		log.debug("Lilt Translation job detected");
     	} else if(strTranslationJobID == null) {
     		log.debug("Job was never sent to TMS. Updated using Export/Import");
     	} else {

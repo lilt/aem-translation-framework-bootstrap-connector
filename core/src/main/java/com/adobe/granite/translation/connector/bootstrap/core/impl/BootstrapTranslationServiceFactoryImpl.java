@@ -87,23 +87,23 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 		BootstrapTranslationCloudConfig bootstrapCloudConfg = (BootstrapTranslationCloudConfig) cloudConfigUtil
 				.getCloudConfigObjectFromPath(BootstrapTranslationCloudConfig.class, cloudConfigPath);
 
-		String dummyConfigId = "";
-		String dummyServerUrl = "";
+		String liltConfigId = "";
+		String liltServerUrl = "";
 		String previewPath = "";
 
 		if (bootstrapCloudConfg != null) {
-			dummyConfigId = bootstrapCloudConfg.getDummyConfigId();
-			dummyServerUrl = bootstrapCloudConfg.getDummyServerUrl();
+			liltConfigId = bootstrapCloudConfg.getLiltConfigId();
+			liltServerUrl = bootstrapCloudConfg.getLiltServerUrl();
 			previewPath = bootstrapCloudConfg.getPreviewPath();
 
 		}
 
 		if (cryptoSupport != null) {
 			try {
-				if (cryptoSupport.isProtected(dummyConfigId)) {
-					dummyConfigId = cryptoSupport.unprotect(dummyConfigId);
+				if (cryptoSupport.isProtected(liltConfigId)) {
+					liltConfigId = cryptoSupport.unprotect(liltConfigId);
 				} else {
-					log.trace("Dummy Config ID is not protected");
+					log.trace("Lilt Config ID is not protected");
 				}
 			} catch (CryptoException e) {
 				log.error("Error while decrypting the client secret {}", e);
@@ -113,7 +113,7 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 		Map<String, String> availableLanguageMap = new HashMap<String, String>();
 		Map<String, String> availableCategoryMap = new HashMap<String, String>();
 		return new BootstrapTranslationServiceImpl(availableLanguageMap, availableCategoryMap, factoryName,
-				isPreviewEnabled, isPseudoLocalizationDisabled, exportFormat, dummyConfigId, dummyServerUrl,
+				isPreviewEnabled, isPseudoLocalizationDisabled, exportFormat, liltConfigId, liltServerUrl,
 				previewPath, translationConfig, bootstrapTmsService);
 	}
 
