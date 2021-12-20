@@ -92,6 +92,14 @@
             <scope>provided</scope>
         </dependency>
         <dependency>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+        </dependency>
+        <dependency>
+          <groupId>com.google.code.gson</groupId>
+          <artifactId>gson</artifactId>
+        </dependency>
+        <dependency>
             <groupId>com.adobe.granite.translation</groupId>
             <artifactId>bootstrap-tms.core</artifactId>
             <version>2.0-SNAPSHOT</version>
