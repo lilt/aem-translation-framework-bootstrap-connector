@@ -100,6 +100,11 @@
                     <failOnError>true</failOnError>
                     <group>com.adobe.granite.translation.connector</group>
                     <name>Lilt Translation Connector</name>
+                    <properties>
+                      <description>Lilt content package containing code (/apps).</description>
+                      <!-- overwrite rep:ACE nodes defining policies for lilt-owned service principals -->
+                      <acHandling>merge</acHandling>
+                    </properties>
                     <embeddeds>
                         <embedded>
                             <groupId>com.adobe.granite.translation.connector</groupId>
