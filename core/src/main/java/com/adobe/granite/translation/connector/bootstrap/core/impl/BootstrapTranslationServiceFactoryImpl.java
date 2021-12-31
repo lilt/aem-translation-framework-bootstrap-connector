@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Collections;
 
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
@@ -35,7 +36,13 @@ import com.adobe.granite.translation.api.TranslationService;
 import com.adobe.granite.translation.api.TranslationServiceFactory;
 import com.adobe.granite.translation.bootstrap.tms.core.BootstrapTmsService;
 import com.adobe.granite.translation.connector.bootstrap.core.BootstrapTranslationCloudConfig;
+import com.adobe.granite.translation.connector.bootstrap.core.impl.config.BootstrapTranslationCloudConfigImpl;
+import com.adobe.granite.translation.connector.bootstrap.core.impl.LiltApiClient;
 import com.adobe.granite.translation.core.TranslationCloudConfigUtil;
+import org.apache.sling.api.resource.ResourceResolverFactory;
+import org.apache.sling.api.resource.Resource;
+import org.apache.sling.api.resource.ResourceResolver;
+import org.apache.sling.api.resource.LoginException;
 
 @Component(service = TranslationServiceFactory.class, immediate = true, configurationPid = "com.adobe.granite.translation.connector.bootstrap.core.impl.BootstrapTranslationServiceFactoryImpl", property = {
 		Constants.SERVICE_DESCRIPTION + "=Configurable settings for the Bootstrap Translation connector",
@@ -62,19 +69,20 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 	CryptoSupport cryptoSupport;
 
 	@Reference
+	private ResourceResolverFactory resolverFactory;
+
+	@Reference
 	BootstrapTmsService bootstrapTmsService;
 
 	private List<TranslationMethod> supportedTranslationMethods;
 
 	private BootstrapServiceConfiguration config;
 
-	
 	public BootstrapTranslationServiceFactoryImpl() {
 		log.trace("BootstrapTranslationServiceFactoryImpl.");
 
 		supportedTranslationMethods = new ArrayList<TranslationMethod>();
 		supportedTranslationMethods.add(TranslationMethod.HUMAN_TRANSLATION);
-		supportedTranslationMethods.add(TranslationMethod.MACHINE_TRANSLATION);
 	}
 
 	private static final Logger log = LoggerFactory.getLogger(BootstrapTranslationServiceFactoryImpl.class);
@@ -84,18 +92,33 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 			throws TranslationException {
 		log.trace("BootstrapTranslationServiceFactoryImpl.createTranslationService");
 
-		BootstrapTranslationCloudConfig bootstrapCloudConfg = (BootstrapTranslationCloudConfig) cloudConfigUtil
-				.getCloudConfigObjectFromPath(BootstrapTranslationCloudConfig.class, cloudConfigPath);
+
+		BootstrapTranslationCloudConfig bootstrapCloudConfg = null;
+		LiltApiClient liltApiClient = null;
 
 		String liltConfigId = "";
 		String liltServerUrl = "";
 		String previewPath = "";
 
+    try {
+      Map<String, Object> param = new HashMap<String, Object>();
+      param.put(ResourceResolverFactory.SUBSERVICE, "bootstrap-service");
+      ResourceResolver resourceResolver = resolverFactory.getServiceResourceResolver(param);
+      Resource res = resourceResolver.getResource(cloudConfigPath);
+      bootstrapCloudConfg = (BootstrapTranslationCloudConfig) cloudConfigUtil
+        .getCloudConfigObjectFromPath(res, BootstrapTranslationCloudConfig.class, cloudConfigPath);
+      if (res != null) {
+        bootstrapCloudConfg = new BootstrapTranslationCloudConfigImpl(res);
+      }
+    } catch (LoginException e) {
+      log.error("Error while resolving config resource {}", e);
+    }
+
 		if (bootstrapCloudConfg != null) {
 			liltConfigId = bootstrapCloudConfg.getLiltConfigId();
 			liltServerUrl = bootstrapCloudConfg.getLiltServerUrl();
 			previewPath = bootstrapCloudConfg.getPreviewPath();
-
+			liltApiClient = new LiltApiClient(liltServerUrl, liltConfigId);
 		}
 
 		if (cryptoSupport != null) {
@@ -114,7 +137,7 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 		Map<String, String> availableCategoryMap = new HashMap<String, String>();
 		return new BootstrapTranslationServiceImpl(availableLanguageMap, availableCategoryMap, factoryName,
 				isPreviewEnabled, isPseudoLocalizationDisabled, exportFormat, liltConfigId, liltServerUrl,
-				previewPath, translationConfig, bootstrapTmsService);
+        previewPath, translationConfig, liltApiClient, cloudConfigPath);
 	}
 
 	@Override
