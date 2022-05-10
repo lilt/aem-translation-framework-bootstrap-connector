@@ -43,6 +43,7 @@ public class LiltApiClient {
 
   public SourceFile[] getFiles(String labels) throws IOException, URISyntaxException {
     try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+      log.warn("getFiles labels {}", labels);
       String baseUrl = String.format("%s/files", apiUrl);
       URIBuilder req = new URIBuilder(baseUrl);
       req.setParameter("key", apiKey);
