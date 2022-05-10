@@ -406,7 +406,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         TranslationObject translationObject, TranslationState state) throws TranslationException {
         log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
         // bootstrapTmsService.setTmsProperty(strTranslationJobID+getObjectPath(translationObject), BootstrapTmsConstants.BOOTSTRAP_TMS_STATUS, state.getStatus().toString());
-        return TranslationStatus.TRANSLATED;
+        // return TranslationStatus.TRANSLATED;
+        return state.getStatus();
     }
 
     @Override
