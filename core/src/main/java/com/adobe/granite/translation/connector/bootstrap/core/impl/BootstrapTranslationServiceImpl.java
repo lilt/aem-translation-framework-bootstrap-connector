@@ -564,9 +564,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
     }
 
-    
+
     private String getObjectPath (TranslationObject translationObject){
-        
         if(translationObject.getTranslationObjectSourcePath()!= null && !translationObject.getTranslationObjectSourcePath().isEmpty()){
             return  translationObject.getTranslationObjectSourcePath();
         }
@@ -575,19 +574,19 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         }
         else if(translationObject.getTitle().equals("ASSETMETADATA")){
             return ASSET_METADATA;
-        } 
+        }
         else if(translationObject.getTitle().equals("I18NCOMPONENTSTRINGDICT")){
             return I18NCOMPONENTSTRINGDICT;
         }
         return null;
-    }    
+    }
 
     public void updateDueDate(String strTranslationJobID, Date date)
             throws TranslationException {
             log.debug("NEW DUE DATE:{}",date);
             // bootstrapTmsService.setTmsJobDuedate(strTranslationJobID, date);
     }
-    
+
 	private static void unzipFileFromStream(ZipInputStream zipInputStream, String targetPath) throws IOException {
 		File dirFile = new File(targetPath + File.separator);
 		if (!dirFile.exists()) {
