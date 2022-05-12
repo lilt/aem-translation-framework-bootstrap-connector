@@ -304,6 +304,10 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             log.warn("lilt: job status for {} is APPROVED", strTranslationJobID);
             return TranslationStatus.APPROVED;
           }
+          if (hasImported && hasTranslated && hasRejected) {
+            log.info("lilt: job status for {} is TRANSLATION_IN_PROGRESS", strTranslationJobID);
+            return TranslationStatus.TRANSLATION_IN_PROGRESS;
+          }
           if (hasImported && hasTranslated) {
             log.warn("lilt: job status for {} is TRANSLATED", strTranslationJobID);
             return TranslationStatus.TRANSLATED;
