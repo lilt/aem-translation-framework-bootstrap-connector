@@ -281,8 +281,9 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         try {
           int imported = 0;
           int translated = 0;
+          int approved = 0;
+          int rejected = 0;
           SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
-          // loop backwards through the list since the most recent files will be at the end.
           for (SourceFile file : files) {
             if (file.labels.contains("status=IMPORTED")) {
               imported++;
@@ -290,9 +291,19 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             if (file.labels.contains("status=TRANSLATED")) {
               translated++;
             }
+            if (file.labels.contains("approval=APPROVED")) {
+              approved++;
+            }
+            if (file.labels.contains("approval=REJECTED")) {
+              rejected++;
+            }
           }
           boolean hasImported = imported > 0;
           boolean hasTranslated = translated > 0;
+          if (hasImported && hasTranslated && approved >= imported) {
+            log.warn("lilt: job status for {} is APPROVED", strTranslationJobID);
+            return TranslationStatus.APPROVED;
+          }
           if (hasImported && hasTranslated) {
             log.warn("lilt: job status for {} is TRANSLATED", strTranslationJobID);
             return TranslationStatus.TRANSLATED;
@@ -437,8 +448,9 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         log.warn("lilt: strTranslationJobID");
         int imported = 0;
         int translated = 0;
+        int approved = 0;
+        int rejected = 0;
         SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
-        // loop backwards through the list since the most recent files will be at the end.
         for (SourceFile file : files) {
           log.warn("lilt: comparing {} to {}", file.name, objectPath);
           if (!Objects.equals(file.name, objectPath)) {
@@ -450,9 +462,25 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           if (file.labels.contains("status=TRANSLATED")) {
             translated++;
           }
+          if (file.labels.contains("approval=APPROVED")) {
+            approved++;
+          }
+          if (file.labels.contains("approval=REJECTED")) {
+            rejected++;
+          }
         }
         boolean hasImported = imported > 0;
         boolean hasTranslated = translated > 0;
+        boolean hasTranslated = translated > 0;
+        boolean hasRejected = rejected > 0;
+        if (hasImported && hasTranslated && approved >= imported) {
+          log.warn("lilt: status for {} is APPROVED", objectPath);
+          return TranslationStatus.APPROVED;
+        }
+        if (hasImported && hasTranslated && hasRejected) {
+          log.warn("lilt: status for {} is REJECTED", objectPath);
+          return TranslationStatus.REJECTED;
+        }
         if (hasImported && hasTranslated) {
           log.warn("lilt: status for {} is TRANSLATED", objectPath);
           return TranslationStatus.TRANSLATED;
@@ -461,11 +489,11 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           log.warn("lilt: status for {} is TRANSLATION_IN_PROGRESS", objectPath);
           return TranslationStatus.TRANSLATION_IN_PROGRESS;
         }
-        // if the object has an extension then it is an image or some sort of asset. we should consider those translated.
+        // if the object has an extension then it is an image or some sort of asset. we should consider those complete.
         Optional<String> maybeExt = getFileExtension(objectPath);
         if (maybeExt.isPresent()) {
-          log.warn("lilt: status for {} is TRANSLATED", objectPath);
-          return TranslationStatus.TRANSLATED;
+          log.warn("lilt: status for {} is APPROVED", objectPath);
+          return TranslationStatus.APPROVED;
         }
         log.warn("lilt: status for {} is COMMITTED_FOR_TRANSLATION", objectPath);
       } catch (Exception e) {
