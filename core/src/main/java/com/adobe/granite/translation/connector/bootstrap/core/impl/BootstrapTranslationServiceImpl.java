@@ -403,10 +403,29 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     @Override
     public TranslationStatus updateTranslationObjectState(String strTranslationJobID,
-        TranslationObject translationObject, TranslationState state) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
-        // bootstrapTmsService.setTmsProperty(strTranslationJobID+getObjectPath(translationObject), BootstrapTmsConstants.BOOTSTRAP_TMS_STATUS, state.getStatus().toString());
-        return TranslationStatus.TRANSLATED;
+      TranslationObject translationObject, TranslationState state) throws TranslationException {
+      log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
+      log.warn("lilt: strTranslationJobID: {}", strTranslationJobID);
+      String status = state.getStatus().toString();
+      String label = String.format("approval=%s", status);
+      String objectPath = String.format("%s.%s", getObjectPath(translationObj), exportFormat);
+      log.warn("lilt: checking for objectPath {}", objectPath);
+      try {
+        SourceFile[] files = liltApiClient.getFiles(labels);
+        // loop backwards through the list since the most recent files will be at the end.
+        for (int i = files.length - 1; i >= 0; i--) {
+          SourceFile file = files[i];
+          log.warn("lilt: comparing {} to {}", file.name, objectPath);
+          if (Objects.equals(file.name, objectPath)) {
+            log.warn("Adding label {} to file {}", label, file.id);
+            liltApiClient.addLabel(file.id, label);
+            return state.getStatus();
+          }
+        }
+      } catch (Exception e) {
+        log.warn("error during getTranslatedObject {}", e);
+      }
+      return state.getStatus();
     }
 
     @Override
