@@ -538,11 +538,21 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     @Override
     public void addTranslationObjectComment(String strTranslationJobID, TranslationObject translationObject,
-        Comment comment) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.addTranslationObjectComment");
-
-        throw new TranslationException("This function is not implemented",
-            TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
+      Comment comment) throws TranslationException {
+      log.trace("BootstrapTranslationServiceImpl.addTranslationObjectComment");
+      String annotation = comment.getAnnotationData();
+      String author = comment.getAuthorName();
+      String fileName = String.format("%s_%s.txt");
+      String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
+      String message = comment.getMessage();
+      String body = String.format("%s\n\n%s", objectPath, message);
+      InputStream inputStream = new ByteArrayInputStream(body.getBytes());
+      String labels = String.format("%s,comment", strTranslationJobID);
+      try {
+        liltApiClient.uploadFile(fileName, labels, inputStream);
+      } catch (Exception e) {
+        log.warn("error during addTranslationObjectComment {}", e);
+      }
     }
 
     @Override
