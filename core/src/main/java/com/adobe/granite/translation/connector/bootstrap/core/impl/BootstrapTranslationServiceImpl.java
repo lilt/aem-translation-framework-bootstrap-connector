@@ -300,6 +300,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           }
           boolean hasImported = imported > 0;
           boolean hasTranslated = translated > 0;
+          boolean hasRejected = rejected > 0;
           if (hasImported && hasTranslated && approved >= imported) {
             log.warn("lilt: job status for {} is APPROVED", strTranslationJobID);
             return TranslationStatus.APPROVED;
@@ -325,13 +326,13 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     @Override
     public CommentCollection<Comment> getTranslationJobCommentCollection(String strTranslationJobID) {
-        log.trace("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
+        log.warn("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
         return null;
     }
 
     @Override
     public void addTranslationJobComment(String strTranslationJobID, Comment comment) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.addTranslationJobComment");
+        log.warn("BootstrapTranslationServiceImpl.addTranslationJobComment");
 
         throw new TranslationException("This function is not implemented",
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
@@ -441,6 +442,11 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       } catch (Exception e) {
         log.warn("error during getTranslatedObject {}", e);
       }
+      Comment comment = state.getComment();
+      if (comment != null) {
+        log.warn(comment.getMessage());
+        addTranslationObjectComment(strTranslationJobID, translationObject, comment);
+      }
       return state.getStatus();
     }
 
@@ -449,12 +455,14 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.getTranslationObjectStatus");
       try {
-        String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
+        String path = getObjectPath(translationObject);
+        String objectPath = String.format("%s.%s", path, exportFormat);
         log.warn("lilt: strTranslationJobID");
         int imported = 0;
         int translated = 0;
         int approved = 0;
         int rejected = 0;
+        int complete = 0;
         SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
         for (SourceFile file : files) {
           log.warn("lilt: comparing {} to {}", file.name, objectPath);
@@ -473,13 +481,24 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           if (file.labels.contains("approval=REJECTED")) {
             rejected++;
           }
+          if (file.labels.contains("approval=COMPLETE")) {
+            rejected++;
+          }
         }
         boolean hasImported = imported > 0;
         boolean hasTranslated = translated > 0;
         boolean hasRejected = rejected > 0;
+        if (hasImported && hasTranslated && complete >= imported) {
+          log.warn("lilt: status for {} is COMPLETE", objectPath);
+          return TranslationStatus.COMPLETE;
+        }
         if (hasImported && hasTranslated && approved >= imported) {
           log.warn("lilt: status for {} is APPROVED", objectPath);
           return TranslationStatus.APPROVED;
+        }
+        if (hasImported && hasTranslated && translated > rejected) {
+          log.warn("lilt: status for {} is APPROVED", objectPath);
+          return TranslationStatus.TRANSLATED;
         }
         if (hasImported && hasTranslated && hasRejected) {
           log.warn("lilt: status for {} is REJECTED", objectPath);
@@ -494,9 +513,9 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           return TranslationStatus.TRANSLATION_IN_PROGRESS;
         }
         // if the object has an extension then it is an image or some sort of asset. we should consider those complete.
-        Optional<String> maybeExt = getFileExtension(objectPath);
+        Optional<String> maybeExt = getFileExtension(path);
         if (maybeExt.isPresent()) {
-          log.warn("lilt: status for {} is APPROVED", objectPath);
+          log.warn("lilt: asset status for {} is APPROVED", path);
           return TranslationStatus.APPROVED;
         }
         log.warn("lilt: status for {} is COMMITTED_FOR_TRANSLATION", objectPath);
@@ -534,7 +553,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     @Override
     public CommentCollection<Comment> getTranslationObjectCommentCollection(String strTranslationJobID,
         TranslationObject translationObject) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.getTranslationObjectCommentCollection");
+        log.warn("BootstrapTranslationServiceImpl.getTranslationObjectCommentCollection");
 
         throw new TranslationException("This function is not implemented",
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
@@ -543,7 +562,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     @Override
     public void addTranslationObjectComment(String strTranslationJobID, TranslationObject translationObject,
       Comment comment) throws TranslationException {
-      log.trace("BootstrapTranslationServiceImpl.addTranslationObjectComment");
+      log.warn("BootstrapTranslationServiceImpl.addTranslationObjectComment");
       String annotation = comment.getAnnotationData();
       String author = comment.getAuthorName();
       String fileName = String.format("%s_%s.txt");
