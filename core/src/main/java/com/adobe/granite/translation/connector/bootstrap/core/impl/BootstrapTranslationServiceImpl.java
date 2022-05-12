@@ -417,9 +417,10 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       TranslationObject translationObject, TranslationState state) throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
       log.warn("lilt: strTranslationJobID: {}", strTranslationJobID);
+      String labels = String.format("%s,status=TRANSLATED", strTranslationJobID);
       String status = state.getStatus().toString();
       String label = String.format("approval=%s", status);
-      String objectPath = String.format("%s.%s", getObjectPath(translationObj), exportFormat);
+      String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
       log.warn("lilt: checking for objectPath {}", objectPath);
       try {
         SourceFile[] files = liltApiClient.getFiles(labels);
@@ -470,7 +471,6 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           }
         }
         boolean hasImported = imported > 0;
-        boolean hasTranslated = translated > 0;
         boolean hasTranslated = translated > 0;
         boolean hasRejected = rejected > 0;
         if (hasImported && hasTranslated && approved >= imported) {
