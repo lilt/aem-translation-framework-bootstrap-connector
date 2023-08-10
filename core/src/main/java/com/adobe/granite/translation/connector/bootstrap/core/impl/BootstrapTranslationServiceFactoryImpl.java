@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Collections;
 
+import org.apache.tika.utils.ExceptionUtils;
 import org.osgi.framework.Constants;
 import org.osgi.service.component.annotations.Activate;
 import org.osgi.service.component.annotations.Component;
@@ -129,7 +130,7 @@ public class BootstrapTranslationServiceFactoryImpl implements TranslationServic
 					log.trace("Lilt Config ID is not protected");
 				}
 			} catch (CryptoException e) {
-				log.error("Error while decrypting the client secret {}", e);
+				log.error("Error while decrypting the client secret {}", ExceptionUtils.getStackTrace(e));
 			}
 		}
 
