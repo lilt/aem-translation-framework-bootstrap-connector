@@ -106,7 +106,7 @@ public class LiltApiClient {
 
   public void addLabel(Integer fileId, String label) throws IOException, URISyntaxException {
     try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
-      log.warn("addLabel fileId {}", fileId);
+      log.info("addLabel fileId {}", fileId);
       String baseUrl = String.format("%s/files/labels", apiUrl);
       URIBuilder req = new URIBuilder(baseUrl);
       req.setParameter("id", Integer.toString(fileId));
@@ -116,10 +116,10 @@ public class LiltApiClient {
       reqBody.put("name", label);
       Gson gson = new Gson();
       String jsonBody = gson.toJson(reqBody);
-      log.warn("addLabel body {}", jsonBody);
+      log.info("addLabel body {}", jsonBody);
       HttpEntity body = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
       httppost.setEntity(body);
-      log.warn("Executing request {}", httppost.getRequestLine());
+      log.info("Executing request {}", httppost.getRequestLine());
       httpclient.execute(httppost);
     }
   }

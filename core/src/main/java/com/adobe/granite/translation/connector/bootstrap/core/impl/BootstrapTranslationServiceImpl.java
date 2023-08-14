@@ -297,7 +297,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           boolean hasTranslated = translated > 0;
           boolean hasRejected = rejected > 0;
           if (hasImported && hasTranslated && approved >= imported) {
-            log.warn("lilt: job status for {} is APPROVED", strTranslationJobID);
+            log.info("lilt: job status for {} is APPROVED", strTranslationJobID);
             return TranslationStatus.APPROVED;
           }
           if (hasImported && hasTranslated && hasRejected) {
@@ -305,29 +305,29 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             return TranslationStatus.TRANSLATION_IN_PROGRESS;
           }
           if (hasImported && hasTranslated) {
-            log.warn("lilt: job status for {} is TRANSLATED", strTranslationJobID);
+            log.info("lilt: job status for {} is TRANSLATED", strTranslationJobID);
             return TranslationStatus.TRANSLATED;
           }
           if (hasImported) {
-            log.warn("lilt: job status for {} is TRANSLATION_IN_PROGRESS", strTranslationJobID);
+            log.info("lilt: job status for {} is TRANSLATION_IN_PROGRESS", strTranslationJobID);
             return TranslationStatus.TRANSLATION_IN_PROGRESS;
           }
         } catch (Exception e) {
-          log.warn("error during getTranslationJobStatus {}", ExceptionUtils.getStackTrace(e));
+          log.error("error during getTranslationJobStatus {}", ExceptionUtils.getStackTrace(e));
         }
-        log.warn("lilt: job status for {} is COMMITTED_FOR_TRANSLATION", strTranslationJobID);
+        log.info("lilt: job status for {} is COMMITTED_FOR_TRANSLATION", strTranslationJobID);
         return TranslationStatus.COMMITTED_FOR_TRANSLATION;
     }
 
     @Override
     public CommentCollection<Comment> getTranslationJobCommentCollection(String strTranslationJobID) {
-        log.warn("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
+        log.info("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
         return null;
     }
 
     @Override
     public void addTranslationJobComment(String strTranslationJobID, Comment comment) throws TranslationException {
-        log.warn("BootstrapTranslationServiceImpl.addTranslationJobComment");
+        log.info("BootstrapTranslationServiceImpl.addTranslationJobComment");
 
         throw new TranslationException("This function is not implemented",
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
@@ -337,10 +337,10 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     public InputStream getTranslatedObject(String strTranslationJobID, TranslationObject translationObj)
       throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.getTranslatedObject");
-      log.warn("lilt: strTranslationJobID: {}", strTranslationJobID);
+      log.info("lilt: strTranslationJobID: {}", strTranslationJobID);
       String labels = String.format("%s,status=TRANSLATED", strTranslationJobID);
       String objectPath = String.format("%s.%s", getObjectPath(translationObj), exportFormat);
-      log.warn("lilt: checking for objectPath {}", objectPath);
+      log.info("lilt: checking for objectPath {}", objectPath);
       try {
         SourceFile[] files = liltApiClient.getFiles(labels);
         // loop backwards through the list since the most recent files will be at the end.
@@ -392,7 +392,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       try {
         liltApiClient.uploadFile(objectPath, labels, inputStream);
       } catch (Exception e) {
-        log.warn("error during uploadTranslationObject {}", ExceptionUtils.getStackTrace(e));
+        log.error("error during uploadTranslationObject {}", ExceptionUtils.getStackTrace(e));
       }
 
       // Generate Preview
@@ -419,26 +419,26 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     public TranslationStatus updateTranslationObjectState(String strTranslationJobID,
       TranslationObject translationObject, TranslationState state) throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
-      log.warn("lilt: strTranslationJobID: {}", strTranslationJobID);
+      log.info("lilt: strTranslationJobID: {}", strTranslationJobID);
       String labels = String.format("%s,status=TRANSLATED", strTranslationJobID);
       String status = state.getStatus().toString();
       String label = String.format("approval=%s", status);
       String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
-      log.warn("lilt: checking for objectPath {}", objectPath);
+      log.info("lilt: checking for objectPath {}", objectPath);
       try {
         SourceFile[] files = liltApiClient.getFiles(labels);
         // loop backwards through the list since the most recent files will be at the end.
         for (int i = files.length - 1; i >= 0; i--) {
           SourceFile file = files[i];
-          log.warn("lilt: comparing {} to {}", file.name, objectPath);
+          log.info("lilt: comparing {} to {}", file.name, objectPath);
           if (Objects.equals(file.name, objectPath)) {
-            log.warn("Adding label {} to file {}", label, file.id);
+            log.info("Adding label {} to file {}", label, file.id);
             liltApiClient.addLabel(file.id, label);
             return state.getStatus();
           }
         }
       } catch (Exception e) {
-        log.warn("error during getTranslatedObject {}", ExceptionUtils.getStackTrace(e));
+        log.error("error during getTranslatedObject {}", ExceptionUtils.getStackTrace(e));
       }
       Comment comment = state.getComment();
       if (comment != null) {
@@ -464,7 +464,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
         // loop backwards through the list since the most recent files will be at the end.
         for (SourceFile file : files) {
-          log.warn("lilt: comparing {} to {}", file.name, objectPath);
+          log.info("lilt: comparing {} to {}", file.name, objectPath);
           if (!Objects.equals(file.name, objectPath)) {
             continue;
           }
@@ -488,23 +488,23 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         boolean hasTranslated = translated > 0;
         boolean hasRejected = rejected > 0;
         if (hasImported && hasTranslated && complete >= imported) {
-          log.warn("lilt: status for {} is COMPLETE", objectPath);
+          log.info("lilt: status for {} is COMPLETE", objectPath);
           return TranslationStatus.COMPLETE;
         }
         if (hasImported && hasTranslated && approved >= imported) {
-          log.warn("lilt: status for {} is APPROVED", objectPath);
+          log.info("lilt: status for {} is APPROVED", objectPath);
           return TranslationStatus.APPROVED;
         }
         if (hasImported && hasTranslated && translated > rejected) {
-          log.warn("lilt: status for {} is TRANSLATED", objectPath);
+          log.info("lilt: status for {} is TRANSLATED", objectPath);
           return TranslationStatus.TRANSLATED;
         }
         if (hasImported && hasTranslated && hasRejected) {
-          log.warn("lilt: status for {} is REJECTED", objectPath);
+          log.info("lilt: status for {} is REJECTED", objectPath);
           return TranslationStatus.REJECTED;
         }
         if (hasImported) {
-          log.warn("lilt: status for {} is TRANSLATION_IN_PROGRESS", objectPath);
+          log.info("lilt: status for {} is TRANSLATION_IN_PROGRESS", objectPath);
           return TranslationStatus.TRANSLATION_IN_PROGRESS;
         }
         // if the object has an extension then it is an image or some sort of asset. we should consider those complete.
@@ -513,9 +513,9 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           log.warn("lilt: asset status for {} is APPROVED", path);
           return TranslationStatus.APPROVED;
         }
-        log.warn("lilt: status for {} is COMMITTED_FOR_TRANSLATION", objectPath);
+        log.info("lilt: status for {} is COMMITTED_FOR_TRANSLATION", objectPath);
       } catch (Exception e) {
-        log.warn("error during getTranslationObjectStatus {}", ExceptionUtils.getStackTrace(e));
+        log.error("error during getTranslationObjectStatus {}", ExceptionUtils.getStackTrace(e));
       }
       return TranslationStatus.COMMITTED_FOR_TRANSLATION;
     }
