@@ -6,10 +6,12 @@ import java.io.InputStreamReader;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.net.URISyntaxException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.google.gson.Gson;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.InputStreamEntity;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -17,6 +19,7 @@ import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.ResponseHandler;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
@@ -98,6 +101,26 @@ public class LiltApiClient {
       return new BufferedReader(new InputStreamReader(content, StandardCharsets.UTF_8))
         .lines()
         .collect(Collectors.joining("\n"));
+    }
+  }
+
+  public void addLabel(Integer fileId, String label) throws IOException, URISyntaxException {
+    try (CloseableHttpClient httpclient = HttpClients.createDefault()) {
+      log.info("addLabel fileId {}", fileId);
+      String baseUrl = String.format("%s/files/labels", apiUrl);
+      URIBuilder req = new URIBuilder(baseUrl);
+      req.setParameter("id", Integer.toString(fileId));
+      req.setParameter("key", apiKey);
+      HttpPost httppost = new HttpPost(req.build());
+      HashMap<String, String> reqBody = new HashMap<>();
+      reqBody.put("name", label);
+      Gson gson = new Gson();
+      String jsonBody = gson.toJson(reqBody);
+      log.info("addLabel body {}", jsonBody);
+      HttpEntity body = new StringEntity(jsonBody, ContentType.APPLICATION_JSON);
+      httppost.setEntity(body);
+      log.info("Executing request {}", httppost.getRequestLine());
+      httpclient.execute(httppost);
     }
   }
 }

@@ -13,28 +13,6 @@ written permission of Adobe.
 
 package com.adobe.granite.translation.connector.bootstrap.core.impl;
 
-import java.io.ByteArrayInputStream;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.Date;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.Optional;
-import java.util.Random;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.adobe.granite.comments.Comment;
 import com.adobe.granite.comments.CommentCollection;
 import com.adobe.granite.translation.api.TranslationConfig;
@@ -48,13 +26,29 @@ import com.adobe.granite.translation.api.TranslationResult;
 import com.adobe.granite.translation.api.TranslationScope;
 import com.adobe.granite.translation.api.TranslationService;
 import com.adobe.granite.translation.api.TranslationState;
-import com.adobe.granite.translation.bootstrap.tms.core.BootstrapTmsConstants;
-import com.adobe.granite.translation.bootstrap.tms.core.BootstrapTmsService;
-import com.adobe.granite.translation.connector.bootstrap.core.impl.config.BootstrapTranslationCloudConfigImpl;
-import com.adobe.granite.translation.connector.bootstrap.core.impl.LiltApiClient;
 import com.adobe.granite.translation.connector.bootstrap.core.impl.LiltApiClient.SourceFile;
+import com.adobe.granite.translation.connector.bootstrap.core.impl.config.BootstrapTranslationCloudConfigImpl;
 import com.adobe.granite.translation.core.common.AbstractTranslationService;
 import com.adobe.granite.translation.core.common.TranslationResultImpl;
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Random;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipInputStream;
+import org.apache.tika.utils.ExceptionUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 public class BootstrapTranslationServiceImpl extends AbstractTranslationService implements TranslationService {
     private static final Logger log = LoggerFactory.getLogger(BootstrapTranslationServiceImpl.class);
@@ -186,7 +180,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         TranslationConstants.ContentType contentType, String contentCategory) throws TranslationException {
         log.trace("BootstrapTranslationServiceImpl.translateString");
         String translatedString = "";
-        if(isPseudoLocalizationDisabled == true){
+        if(isPseudoLocalizationDisabled){
         	translatedString = String.format("%s_%s_%s", sourceLanguage, sourceString, targetLanguage);
         }else {
         	// Using Pseudo translation here using accented characters
@@ -247,7 +241,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         try {
           SourceFile[] sourceFiles = liltApiClient.getFiles(null);
         } catch (Exception e) {
-          log.warn("error during createTranslationJob {}", e);
+          log.warn("error during createTranslationJob {}", ExceptionUtils.getStackTrace(e));
         }
         return jobInfo;
     }
@@ -262,7 +256,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     @Override
     public TranslationStatus updateTranslationJobState(String strTranslationJobID, TranslationState state)
       throws TranslationException {
-    	if(strTranslationJobID=="lilt"){
+    	if(Objects.equals(strTranslationJobID, "lilt")){
     		log.debug("Lilt Translation job detected");
     	} else if(strTranslationJobID == null) {
     		log.debug("Job was never sent to TMS. Updated using Export/Import");
@@ -281,6 +275,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         try {
           int imported = 0;
           int translated = 0;
+          int approved = 0;
+          int rejected = 0;
           SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
           // loop backwards through the list since the most recent files will be at the end.
           for (SourceFile file : files) {
@@ -290,30 +286,48 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             if (file.labels.contains("status=TRANSLATED")) {
               translated++;
             }
+            if (file.labels.contains("approval=APPROVED")) {
+              approved++;
+            }
+            if (file.labels.contains("approval=REJECTED")) {
+              rejected++;
+            }
           }
           boolean hasImported = imported > 0;
           boolean hasTranslated = translated > 0;
+          boolean hasRejected = rejected > 0;
+          if (hasImported && hasTranslated && approved >= imported) {
+            log.info("lilt: job status for {} is APPROVED", strTranslationJobID);
+            return TranslationStatus.APPROVED;
+          }
+          if (hasImported && hasTranslated && hasRejected) {
+            log.info("lilt: job status for {} is TRANSLATION_IN_PROGRESS", strTranslationJobID);
+            return TranslationStatus.TRANSLATION_IN_PROGRESS;
+          }
           if (hasImported && hasTranslated) {
+            log.info("lilt: job status for {} is TRANSLATED", strTranslationJobID);
             return TranslationStatus.TRANSLATED;
           }
           if (hasImported) {
+            log.info("lilt: job status for {} is TRANSLATION_IN_PROGRESS", strTranslationJobID);
             return TranslationStatus.TRANSLATION_IN_PROGRESS;
           }
         } catch (Exception e) {
-          log.warn("error during getTranslationJobStatus {}", e);
+          log.error("error during getTranslationJobStatus {}", ExceptionUtils.getStackTrace(e));
         }
+        log.info("lilt: job status for {} is COMMITTED_FOR_TRANSLATION", strTranslationJobID);
         return TranslationStatus.COMMITTED_FOR_TRANSLATION;
     }
 
     @Override
     public CommentCollection<Comment> getTranslationJobCommentCollection(String strTranslationJobID) {
-        log.trace("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
+        log.info("BootstrapTranslationServiceImpl.getTranslationJobCommentCollection");
         return null;
     }
 
     @Override
     public void addTranslationJobComment(String strTranslationJobID, Comment comment) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.addTranslationJobComment");
+        log.info("BootstrapTranslationServiceImpl.addTranslationJobComment");
 
         throw new TranslationException("This function is not implemented",
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
@@ -323,13 +337,16 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     public InputStream getTranslatedObject(String strTranslationJobID, TranslationObject translationObj)
       throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.getTranslatedObject");
+      log.info("lilt: strTranslationJobID: {}", strTranslationJobID);
       String labels = String.format("%s,status=TRANSLATED", strTranslationJobID);
       String objectPath = String.format("%s.%s", getObjectPath(translationObj), exportFormat);
+      log.info("lilt: checking for objectPath {}", objectPath);
       try {
         SourceFile[] files = liltApiClient.getFiles(labels);
         // loop backwards through the list since the most recent files will be at the end.
         for (int i = files.length - 1; i >= 0; i--) {
           SourceFile file = files[i];
+          log.warn("lilt: comparing {} to {}", file.name, objectPath);
           if (Objects.equals(file.name, objectPath)) {
             log.warn("Downloading the translated lilt file {}", file.id);
             String translation = liltApiClient.downloadFile(file.id);
@@ -337,7 +354,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           }
         }
       } catch (Exception e) {
-        log.warn("error during getTranslatedObject {}", e);
+        log.warn("error during getTranslatedObject {}", ExceptionUtils.getStackTrace(e));
       }
       log.info("No translations are available to download for {}", objectPath);
       return null;
@@ -375,7 +392,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       try {
         liltApiClient.uploadFile(objectPath, labels, inputStream);
       } catch (Exception e) {
-        log.warn("error during uploadTranslationObject {}", e);
+        log.error("error during uploadTranslationObject {}", ExceptionUtils.getStackTrace(e));
       }
 
       // Generate Preview
@@ -400,10 +417,35 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     @Override
     public TranslationStatus updateTranslationObjectState(String strTranslationJobID,
-        TranslationObject translationObject, TranslationState state) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
-        // bootstrapTmsService.setTmsProperty(strTranslationJobID+getObjectPath(translationObject), BootstrapTmsConstants.BOOTSTRAP_TMS_STATUS, state.getStatus().toString());
-        return TranslationStatus.TRANSLATED;
+      TranslationObject translationObject, TranslationState state) throws TranslationException {
+      log.trace("BootstrapTranslationServiceImpl.updateTranslationObjectState");
+      log.info("lilt: strTranslationJobID: {}", strTranslationJobID);
+      String labels = String.format("%s,status=TRANSLATED", strTranslationJobID);
+      String status = state.getStatus().toString();
+      String label = String.format("approval=%s", status);
+      String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
+      log.info("lilt: checking for objectPath {}", objectPath);
+      try {
+        SourceFile[] files = liltApiClient.getFiles(labels);
+        // loop backwards through the list since the most recent files will be at the end.
+        for (int i = files.length - 1; i >= 0; i--) {
+          SourceFile file = files[i];
+          log.info("lilt: comparing {} to {}", file.name, objectPath);
+          if (Objects.equals(file.name, objectPath)) {
+            log.info("Adding label {} to file {}", label, file.id);
+            liltApiClient.addLabel(file.id, label);
+            return state.getStatus();
+          }
+        }
+      } catch (Exception e) {
+        log.error("error during getTranslatedObject {}", ExceptionUtils.getStackTrace(e));
+      }
+      Comment comment = state.getComment();
+      if (comment != null) {
+        log.warn(comment.getMessage());
+        addTranslationObjectComment(strTranslationJobID, translationObject, comment);
+      }
+      return state.getStatus();
     }
 
     @Override
@@ -411,12 +453,18 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
       throws TranslationException {
       log.trace("BootstrapTranslationServiceImpl.getTranslationObjectStatus");
       try {
-        String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
+        String path = getObjectPath(translationObject);
+        String objectPath = String.format("%s.%s", path, exportFormat);
+        log.warn("lilt: strTranslationJobID");
         int imported = 0;
         int translated = 0;
+        int approved = 0;
+        int rejected = 0;
+        int complete = 0;
         SourceFile[] files = liltApiClient.getFiles(strTranslationJobID);
         // loop backwards through the list since the most recent files will be at the end.
         for (SourceFile file : files) {
+          log.info("lilt: comparing {} to {}", file.name, objectPath);
           if (!Objects.equals(file.name, objectPath)) {
             continue;
           }
@@ -426,22 +474,48 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
           if (file.labels.contains("status=TRANSLATED")) {
             translated++;
           }
+          if (file.labels.contains("approval=APPROVED")) {
+            approved++;
+          }
+          if (file.labels.contains("approval=REJECTED")) {
+            rejected++;
+          }
+          if (file.labels.contains("approval=COMPLETE")) {
+            complete++;
+          }
         }
         boolean hasImported = imported > 0;
         boolean hasTranslated = translated > 0;
-        if (hasImported && hasTranslated) {
+        boolean hasRejected = rejected > 0;
+        if (hasImported && hasTranslated && complete >= imported) {
+          log.info("lilt: status for {} is COMPLETE", objectPath);
+          return TranslationStatus.COMPLETE;
+        }
+        if (hasImported && hasTranslated && approved >= imported) {
+          log.info("lilt: status for {} is APPROVED", objectPath);
+          return TranslationStatus.APPROVED;
+        }
+        if (hasImported && hasTranslated && translated > rejected) {
+          log.info("lilt: status for {} is TRANSLATED", objectPath);
           return TranslationStatus.TRANSLATED;
+        }
+        if (hasImported && hasTranslated && hasRejected) {
+          log.info("lilt: status for {} is REJECTED", objectPath);
+          return TranslationStatus.REJECTED;
         }
         if (hasImported) {
+          log.info("lilt: status for {} is TRANSLATION_IN_PROGRESS", objectPath);
           return TranslationStatus.TRANSLATION_IN_PROGRESS;
         }
-        // if the object has an extension then it is an image or some sort of asset. we should consider those translated.
-        Optional<String> maybeExt = getFileExtension(objectPath);
+        // if the object has an extension then it is an image or some sort of asset. we should consider those complete.
+        Optional<String> maybeExt = getFileExtension(path);
         if (maybeExt.isPresent()) {
-          return TranslationStatus.TRANSLATED;
-      }
+          log.warn("lilt: asset status for {} is APPROVED", path);
+          return TranslationStatus.APPROVED;
+        }
+        log.info("lilt: status for {} is COMMITTED_FOR_TRANSLATION", objectPath);
       } catch (Exception e) {
-        log.warn("error during getTranslationObjectStatus {}", e);
+        log.error("error during getTranslationObjectStatus {}", ExceptionUtils.getStackTrace(e));
       }
       return TranslationStatus.COMMITTED_FOR_TRANSLATION;
     }
@@ -474,7 +548,7 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
     @Override
     public CommentCollection<Comment> getTranslationObjectCommentCollection(String strTranslationJobID,
         TranslationObject translationObject) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.getTranslationObjectCommentCollection");
+        log.warn("BootstrapTranslationServiceImpl.getTranslationObjectCommentCollection");
 
         throw new TranslationException("This function is not implemented",
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
@@ -482,11 +556,21 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
 
     @Override
     public void addTranslationObjectComment(String strTranslationJobID, TranslationObject translationObject,
-        Comment comment) throws TranslationException {
-        log.trace("BootstrapTranslationServiceImpl.addTranslationObjectComment");
-
-        throw new TranslationException("This function is not implemented",
-            TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
+      Comment comment) throws TranslationException {
+      log.warn("BootstrapTranslationServiceImpl.addTranslationObjectComment");
+      String annotation = comment.getAnnotationData();
+      String author = comment.getAuthorName();
+      String fileName = String.format("%s_%s.txt", author, annotation);
+      String objectPath = String.format("%s.%s", getObjectPath(translationObject), exportFormat);
+      String message = comment.getMessage();
+      String body = String.format("%s%n%n%s", objectPath, message);
+      InputStream inputStream = new ByteArrayInputStream(body.getBytes());
+      String labels = String.format("%s,comment", strTranslationJobID);
+      try {
+        liltApiClient.uploadFile(fileName, labels, inputStream);
+      } catch (Exception e) {
+        log.warn("error during addTranslationObjectComment {}", ExceptionUtils.getStackTrace(e));
+      }
     }
 
     @Override
@@ -498,9 +582,8 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
             TranslationException.ErrorCode.SERVICE_NOT_IMPLEMENTED);
     }
 
-    
+
     private String getObjectPath (TranslationObject translationObject){
-        
         if(translationObject.getTranslationObjectSourcePath()!= null && !translationObject.getTranslationObjectSourcePath().isEmpty()){
             return  translationObject.getTranslationObjectSourcePath();
         }
@@ -509,19 +592,19 @@ public class BootstrapTranslationServiceImpl extends AbstractTranslationService 
         }
         else if(translationObject.getTitle().equals("ASSETMETADATA")){
             return ASSET_METADATA;
-        } 
+        }
         else if(translationObject.getTitle().equals("I18NCOMPONENTSTRINGDICT")){
             return I18NCOMPONENTSTRINGDICT;
         }
         return null;
-    }    
+    }
 
     public void updateDueDate(String strTranslationJobID, Date date)
             throws TranslationException {
             log.debug("NEW DUE DATE:{}",date);
             // bootstrapTmsService.setTmsJobDuedate(strTranslationJobID, date);
     }
-    
+
 	private static void unzipFileFromStream(ZipInputStream zipInputStream, String targetPath) throws IOException {
 		File dirFile = new File(targetPath + File.separator);
 		if (!dirFile.exists()) {
