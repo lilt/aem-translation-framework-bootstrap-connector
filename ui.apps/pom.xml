@@ -116,14 +116,19 @@
                             <artifactId>bootstrap-tms.core</artifactId>
                             <target>/apps/bootstrap-connector/install</target>
                         </embedded>
+                        <embedded>
+                            <groupId>com.adobe.granite.translation</groupId>
+                            <artifactId>lilt-connector.ui.content</artifactId>
+                            <target>/apps/bootstrap-connector/install</target>
+                        </embedded>
                     </embeddeds>
-                    <dependencies>
-                        <dependency>
-                            <group>com.adobe.granite.translation.connector</group>
-                            <name>lilt-connector.ui.content</name>
-                            <version>[${project.version},)</version>
-                        </dependency>
-                    </dependencies>
+<!--                    <dependencies>-->
+<!--                        <dependency>-->
+<!--                            <group>com.adobe.granite.translation.connector</group>-->
+<!--                            <name>lilt-connector.ui.content</name>-->
+<!--                            <version>[${project.version},)</version>-->
+<!--                        </dependency>-->
+<!--                    </dependencies>-->
                 </configuration>
             </plugin>
         </plugins>
@@ -133,6 +138,12 @@
     <!-- D E P E N D E N C I E S                                                -->
     <!-- ====================================================================== -->
     <dependencies>
+        <dependency>
+            <groupId>com.adobe.granite.translation.connector</groupId>
+            <artifactId>lilt-connector.ui.content</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+
         <dependency>
             <groupId>com.adobe.granite.translation.connector</groupId>
             <artifactId>lilt-connector.core</artifactId>

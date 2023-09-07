@@ -24,9 +24,9 @@
     <description>Lilt Translation Connector</description>
 
     <modules>
+        <module>ui.content</module>
         <module>core</module>
         <module>ui.apps</module>
-        <module>ui.content</module>
     </modules>
 
     <scm>
