@@ -14,14 +14,15 @@ pipeline {
                 kubernetes {
                     defaultContainer 'node'
                     idleMinutes 1
-                    yaml agentLauncher(name: "javaNodePodTemplate")
+                    yaml agentLauncher(name: "mavenNodePodTemplate")
                 }
             }
             steps {
                 script {
                     def scannerHome = tool 'sonarqube-lilt';
                     withSonarQubeEnv('sonarqube-lilt') {
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=."
+                        sh "mvn clean install"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=. -Dsonar.java.binaries=./core/target/classes"
                     }
                 }
             }
