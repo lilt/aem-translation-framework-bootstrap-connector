@@ -23,7 +23,8 @@ pipeline {
                     withSonarQubeEnv('sonarqube-lilt') {
                         sh "mvn clean install"
                         sh "ls -R"
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=."
+                        sh "pwd"
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=. -Dsonar.java.binariess=./core/target/classes"
                     }
                 }
             }
