@@ -1,0 +1,30 @@
+@Library('infra-jenkins-shared-library@main') _
+pipeline {
+    agent none
+
+    options {
+        ansiColor('xterm')
+        //only keep last 5 builds and artifacts
+        buildDiscarder(logRotator(numToKeepStr: '5', artifactNumToKeepStr: '5'))
+    }
+
+   stages {
+        stage('Sonarqube Scan') {
+            agent {
+                kubernetes {
+                    defaultContainer 'node'
+                    idleMinutes 1
+                    yaml agentLauncher(name: "javaNodePodTemplate")
+                }
+            }
+            steps {
+                script {
+                    def scannerHome = tool 'sonarqube-lilt';
+                    withSonarQubeEnv('sonarqube-lilt') {
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=."
+                    }
+                }
+            }
+        }
+    }
+}
