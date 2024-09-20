@@ -22,9 +22,8 @@ pipeline {
                     def scannerHome = tool 'sonarqube-lilt';
                     withSonarQubeEnv('sonarqube-lilt') {
                         sh "mvn clean install"
-                        sh "ls -R"
-                        sh "pwd"
-                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=. -Dsonar.java.binariess=./core/target/classes"
+                        // #/home/jenkins/agent/workspace/connectors/AEM Connector Sonar Scan
+                        sh "${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=aem-connector -Dsonar.sources=. -Dsonar.java.binaries=./core/target/classes"
                     }
                 }
             }
