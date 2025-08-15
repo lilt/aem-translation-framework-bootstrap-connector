@@ -75,7 +75,7 @@ public class LiltApiClient {
       String baseUrl = String.format("%s/files", apiUrl);
       URIBuilder req = new URIBuilder(baseUrl);
       req.setParameter("key", apiKey);
-      req.setParameter("name", name);
+      req.setParameter("name", trimFileName(name));
       req.setParameter("labels", labels);
       HttpPost httppost = new HttpPost(req.build());
       log.warn("Executing request {}", httppost.getRequestLine());
@@ -122,5 +122,14 @@ public class LiltApiClient {
       log.warn("Executing request {}", httppost.getRequestLine());
       httpclient.execute(httppost);
     }
+  }
+
+  private String trimFileName(String name) {
+    if (name != null) {
+      if (name.length() > 200) {
+        return name.substring(name.length()-200);
+      }
+    }
+    return name;
   }
 }
